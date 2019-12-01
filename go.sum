@@ -1,0 +1,17 @@
+github.com/antigloss/go v0.0.0-20190222022504-96835b8b9205 h1:ZtWhEdwqvaTa6CvMd0O8r+a+yPeiAEoe5G5CcV1tPGA=
+github.com/antigloss/go v0.0.0-20190222022504-96835b8b9205/go.mod h1:UZS1xsciSvBSC16bV7x0obAXHBpEIouHVNsikdsLyGo=
+github.com/d2r2/go-hd44780 v0.0.0-20181002113701-74cc28c83a3e h1:3gLJWdofXjBoecDb9e+giWp77saiF6r2Mtu+edWCksY=
+github.com/d2r2/go-hd44780 v0.0.0-20181002113701-74cc28c83a3e/go.mod h1:IruYZr0O1UbQs3rV5N2WPM8CpaT5rRgvPPzksu1+N6o=
+github.com/d2r2/go-i2c v0.0.0-20191123181816-73a8a799d6bc h1:HLRSIWzUGMLCq4ldt0W1GLs3nnAxa5EGoP+9qHgh6j0=
+github.com/d2r2/go-i2c v0.0.0-20191123181816-73a8a799d6bc/go.mod h1:AwxDPnsgIpy47jbGXZHA9Rv7pDkOJvQbezPuK1Y+nNk=
+github.com/d2r2/go-logger v0.0.0-20181221090742-9998a510495e h1:ZG3JBA6rPRl0xxQ+nNSfO7tor8w+CNCTs05DNJQYbLM=
+github.com/d2r2/go-logger v0.0.0-20181221090742-9998a510495e/go.mod h1:oA+9PUt8F1aKJ6o4YU1T120i7sgo1T6/1LWEEBy0BSs=
+github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
+github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/op/go-logging v0.0.0-20160315200505-970db520ece7 h1:lDH9UUVJtmYCjyT0CI4q8xvlXPxeZ0gYCVvWbmPlp88=
+github.com/op/go-logging v0.0.0-20160315200505-970db520ece7/go.mod h1:HzydrMdWErDVzsI23lYNej1Htcns9BCg93Dk0bBINWk=
+golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8 h1:hVwzHzIUGRjiF7EcUjqNxk3NCfkPxbDKRdnNE1Rpg0U=
+golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
+golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
+periph.io/x/periph v3.6.2+incompatible h1:B9vqhYVuhKtr6bXua8N9GeBEvD7yanczCvE0wU2LEqw=
+periph.io/x/periph v3.6.2+incompatible/go.mod h1:EWr+FCIU2dBWz5/wSWeiIUJTriYv9v2j2ENBmgYyy7Y=

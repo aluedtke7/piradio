@@ -146,12 +146,12 @@ be started manually in the shell to see the output.
 - lcdDelay: sometimes the LCD will not be correctly initialized and the display shows funny characters.
 In this case increase this value. Only needed for the LCD.
 - noise: some stations transmit very long title names with the remix name in round brackets. If you 
-enable this option these strings will be removed and the title will mostly fit on the display without 
+enable this option these strings will be removed and the title will most probably fit on the display without 
 scrolling.
 - oled: set this option to use the OLED display.
-- scrollSpeed: the scrolling is set by default to speed of 500ms. If this speed is too fast or too 
-slow for you, please set a different value here. Mostly needed for the LCD.
-- scrollStation: if you want the station name also to scroll in case of long names, please enable 
+- scrollSpeed: the scrolling is set by default to a speed of 500ms. If this speed is too fast or too 
+slow for you, please set a different value here.
+- scrollStation: if you want the station name to scroll in case of long names, please enable 
 this option.
 
 Various options set:
@@ -179,7 +179,7 @@ In addition, the file `rc.local` needs admin rights to be changed:
 
 #### Stop
 If you need to stop the automatically started `piradio`, please proceed as follows. First, get the
-`Progcess Group ID, PGID` of piradio and the mplayer processes:
+`Process Group ID (PGID)` of piradio and the mplayer processes:
 
     ps -o pid,ppid,pgid,cmd -U pi
     

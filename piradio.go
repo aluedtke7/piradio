@@ -55,6 +55,7 @@ var (
 	pipeChan         = make(chan io.ReadCloser)
 	ipAddress        string
 	homePath         string
+	currentStation   string
 	debounceWrite    func(f func())
 	charMap          = map[string]string{"'": "'", "´": "'", "á": "a", "é": "e", "ê": "e", "è": "e", "í": "i", "à": "a",
 		"ä": "ae", "Ä": "Ae", "ö": "oe", "Ö": "Oe", "ü": "ue", "Ü": "Ue", "ß": "ss", "…": "...", "Ó": "O", "ó": "o",
@@ -287,9 +288,11 @@ func newStation() {
 	}()
 }
 
+// removes unneeded/unwanted strings from the title like " (CDM EDIT)" etc.
 func removeNoise(title string) string {
 	opening := strings.Index(title, "(")
 	closing := strings.Index(title, ")")
+	// text must be enclosed by round brackets
 	if opening >= 0 && closing >= 0 && closing > opening {
 		var remove bool = false
 		// fmt.Println("removing noise...")
@@ -344,6 +347,7 @@ func main() {
 	if *lcdDelayPtr > 10 {
 		*lcdDelayPtr = 10
 	}
+
 	var err error
 	if *oledPtr {
 		disp, err = oled.New(*scrollSpeedPtr)
@@ -360,12 +364,11 @@ func main() {
 		check(err)
 	}
 
-	// Lookup pins by their numbers:
+	// Lookup pins by their names and set them as input pins with an internal pull up resistor:
 	p17 := gpioreg.ByName("GPIO17")
 	if p17 == nil {
 		logger.Error("Failed to find GPIO17")
 	}
-	// Set it as input, with an internal pull up resistor:
 	if err := p17.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		check(err)
 	}
@@ -374,7 +377,6 @@ func main() {
 	if p22 == nil {
 		logger.Error("Failed to find GPIO22")
 	}
-	// Set it as input, with an internal pull up resistor:
 	if err := p22.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		check(err)
 	}
@@ -383,7 +385,6 @@ func main() {
 	if p23 == nil {
 		logger.Error("Failed to find GPIO23")
 	}
-	// Set it as input, with an internal pull up resistor:
 	if err := p23.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		check(err)
 	}
@@ -392,7 +393,6 @@ func main() {
 	if p27 == nil {
 		logger.Error("Failed to find GPIO27")
 	}
-	// Set it as input, with an internal pull up resistor:
 	if err := p27.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		check(err)
 	}
@@ -460,7 +460,7 @@ func main() {
 	// this goroutine is waiting for someone to stop piradio
 	go func() {
 		<-ctrlChan
-		logger.Trace("\nCtrl+C received... Exiting")
+		logger.Trace("Ctrl+C received... Exiting")
 		close(statusChan)
 		close(pipeChan)
 		os.Exit(1)
@@ -484,7 +484,7 @@ func main() {
 	}()
 
 	// Is used for testing if the url is available on startup. This is important, when started via rc.local
-	// on boot because the internet connection might yet not be available.
+	// on boot, because the internet connection might not be available yet.
 	for !isConnceted(stations[0].url) {
 		logger.Trace("URL %s is NOT available", stations[0].url)
 		time.Sleep(300 * time.Millisecond)
@@ -513,6 +513,7 @@ func main() {
 					// logger.Trace("Station: " + s)
 					printLine(0, s, *scrollStationPtr)
 					logger.Info("Station: " + s)
+					currentStation = s
 				}
 			}
 			if strings.Index(line, "ICY Info:") == 0 {
@@ -525,7 +526,7 @@ func main() {
 						if trenner > 0 {
 							printLine(1, title[:trenner], true)
 							printLine(2, title[trenner+3:], true)
-							if strings.TrimSpace(title) != "-" {
+							if strings.TrimSpace(title) != "-" && title != currentStation {
 								logger.Info("Title:   " + title)
 							}
 						} else {

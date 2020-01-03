@@ -27,6 +27,11 @@ This can only be tested, if you run them on a raspberry pi with installed GO. Se
 
 The current tests don't need a raspberry pi and will run on the dev machine without problems.
 
+#### Update all Modules
+Run the following command to update all libraries/modules:
+
+    go get -u -t ./...
+
 #### Install GO on the raspberry
 If you don't like cross compilation or if you want to run tests that needs a raspberry pi, you can install
 GO directly on the raspberry. Get the golang tar archive from Google:

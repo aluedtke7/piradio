@@ -365,35 +365,35 @@ func main() {
 	}
 
 	// Lookup pins by their names and set them as input pins with an internal pull up resistor:
-	p17 := gpioreg.ByName("GPIO17")
-	if p17 == nil {
-		logger.Error("Failed to find GPIO17")
+	pNextStation := gpioreg.ByName("GPIO5")
+	if pNextStation == nil {
+		logger.Error("Failed to find GPIO5")
 	}
-	if err := p17.In(gpio.PullUp, gpio.NoEdge); err != nil {
+	if err := pNextStation.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		check(err)
 	}
 
-	p22 := gpioreg.ByName("GPIO22")
-	if p22 == nil {
-		logger.Error("Failed to find GPIO22")
+	pPrevStation := gpioreg.ByName("GPIO6")
+	if pPrevStation == nil {
+		logger.Error("Failed to find GPIO6")
 	}
-	if err := p22.In(gpio.PullUp, gpio.NoEdge); err != nil {
+	if err := pPrevStation.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		check(err)
 	}
 
-	p23 := gpioreg.ByName("GPIO23")
-	if p23 == nil {
-		logger.Error("Failed to find GPIO23")
+	pVolUp := gpioreg.ByName("GPIO19")
+	if pVolUp == nil {
+		logger.Error("Failed to find GPIO19")
 	}
-	if err := p23.In(gpio.PullUp, gpio.NoEdge); err != nil {
+	if err := pVolUp.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		check(err)
 	}
 
-	p27 := gpioreg.ByName("GPIO27")
-	if p27 == nil {
-		logger.Error("Failed to find GPIO27")
+	pVolDown := gpioreg.ByName("GPIO26")
+	if pVolDown == nil {
+		logger.Error("Failed to find GPIO26")
 	}
-	if err := p27.In(gpio.PullUp, gpio.NoEdge); err != nil {
+	if err := pVolDown.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		check(err)
 	}
 
@@ -406,7 +406,7 @@ func main() {
 	debounceWrite = debouncer.New(15 * time.Second)
 
 	// the following 4 functions handle the pressed buttons
-	fp17 := func() {
+	fpPrev := func() {
 		stationMutex.Lock()
 		stationIdx-- // previous station
 		if stationIdx < 0 {
@@ -415,24 +415,24 @@ func main() {
 		newStation()
 		stationMutex.Unlock()
 	}
-	fp22 := func() {
-		volumeMutex.Lock()
-		_, err = inPipe.Write([]byte("*")) // increase volume
-		volumeMutex.Unlock()
-		check(err)
-	}
-	fp23 := func() {
-		volumeMutex.Lock()
-		_, err = inPipe.Write([]byte("/")) // decrease volume
-		volumeMutex.Unlock()
-		check(err)
-	}
-	fp27 := func() {
+	fpNext := func() {
 		stationMutex.Lock()
 		stationIdx++ // next station
 		stationIdx = stationIdx % len(stations)
 		newStation()
 		stationMutex.Unlock()
+	}
+	fpUp := func() {
+		volumeMutex.Lock()
+		_, err = inPipe.Write([]byte("*")) // increase volume
+		volumeMutex.Unlock()
+		check(err)
+	}
+	fpDown := func() {
+		volumeMutex.Lock()
+		_, err = inPipe.Write([]byte("/")) // decrease volume
+		volumeMutex.Unlock()
+		check(err)
 	}
 
 	signal.Notify(ctrlChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
@@ -444,14 +444,14 @@ func main() {
 	go func() {
 		for {
 			switch {
-			case p27.Read() == false:
-				debounceBtn(fp27) // next station
-			case p17.Read() == false:
-				debounceBtn(fp17) // previous station
-			case p22.Read() == false:
-				debounceBtn(fp22) // increase volume
-			case p23.Read() == false:
-				debounceBtn(fp23) // decrease volume
+			case pNextStation.Read() == false:
+				debounceBtn(fpNext) // next station
+			case pPrevStation.Read() == false:
+				debounceBtn(fpPrev) // previous station
+			case pVolUp.Read() == false:
+				debounceBtn(fpUp) // increase volume
+			case pVolDown.Read() == false:
+				debounceBtn(fpDown) // decrease volume
 			}
 			time.Sleep(70 * time.Millisecond)
 		}
@@ -489,7 +489,7 @@ func main() {
 		logger.Trace("URL %s is NOT available", stations[0].url)
 		time.Sleep(300 * time.Millisecond)
 	}
-	fp27()
+	fpNext()
 
 	go func() {
 		// In order to show the volume level, it's neccessary to 'press' once 'decrease volume'

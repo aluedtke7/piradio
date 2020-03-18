@@ -1,18 +1,19 @@
 ## Internet radio player for the Raspberry PI written in GO
 This project describes what is neccessary to build an internet radio player with GO for the Raspberry Pi.
 There is a [documentation file](doc/development.md) about some aspects of the software design 
-(i.e. *why do you use an extra channel for the display?*).
+(i.e. *why do you use an extra channel for the display?*). 
 
 ![breadboard](doc/breadboard.jpg)
+
+The wiring is also documented with a fritzing sketch.
+![Fritzing](doc/schematic.png)
 
 ### Hardware
 For the development I'm using a model 3B+ but the final target will be a Raspberry PI Zero WH. 
 This is the cheapest model that has WIFI. An internet radio without WIFI doesn't makes sense
 in my opinion.
 
-The wiring is also documented with a fritzing sketch.
-![Fritzing](doc/schematic.png)
-
+The documentation about that version can be found [here](doc/raspy_zero.md).
 
 #### Displays
 As display you can choose between two differnt types: a 20x4 LCD or a 0,96" OLED both with i²c interface. The program
@@ -29,14 +30,10 @@ have a galvanic isolation between the loudspeaker input and the raspberry pi. Ot
 interferences in the speakers. I bought the noise filter (ground loop isolator, the black round tube at the bottom of
 the photo) from a big american online warehouse.
 
-It's also possible to connect a Bluetooth speaker to the raspberry pi, but I haven't tried that.
-
-#### Power Supply
-As power supply I will use a usb power bank that is connected via a switch cable to the raspberry. This way I can turn 
-the power on and off.
+It's also possible to connect a Bluetooth speaker to the raspberry pi, but I haven't tried that (yet).
 
 ### Software
-The software is written in GO (1.13) and it uses the `mplayer` for the heavy lifting part (music streaming etc.).
+The software is written in GO (1.14) and it uses the `mplayer` for the heavy lifting part (music streaming etc.).
 There are currently 4 (self describing)  buttons:
 
 - next station

@@ -85,7 +85,7 @@ In case the tool is not installed:
 ### Updating all packages
 Run `sudo apt update && sudo apt upgrade` and wait until all updates are installed.
 
-### audio output
+### Audio output
 Since the Raspberry Zero dowsn't have an audio jack, we need to route the internal
 PWM signals to GPIO pins and shape the signal so that they are compatible with standard
 audio equipment. The routing is done with an entry in `/boot/config.txt`. Just put the 
@@ -95,10 +95,36 @@ following line at the end of the file:
 
 You need su rights to change the file. After changing, please reboot.
 
-#### signal shaping
+#### Signal shaping
 The shaping is a simple RC lowpass filter together with an output condensator to eliminate
 dc from the signal. Since the pwm output have a quite high voltage, a voltage divider is
 in front of the filter. The calculation for the RC filter was done on [this page](https://electronicbase.net/de/tiefpass-berechnen/#passiver-tiefpass-1-ordnung).
 The Fritzing schematic is located in [this file](https://github.com/aluedtke7/piradio/blob/master/doc/RaspiZero.fzz).
 
 ![Fritzing Zero](schematic_zero.png)
+
+#### Power supply
+I decided to buy a cheap power bank pcb, because that gave me the most possibilities. The pcb I bought has
+2 USB type A outputs and a micro USB Input for charging. In addition, it has a small LCD that shows
+the current percentage of capacity. On the side there's a small push button that handles on and off
+switching. The battery is a LiPo of size 18650.
+
+#### Photos
+All together:
+![all together](zero_w_overview.png)
+
+Power supply:
+![power supply](zero_w_psu.png)
+
+Keypad:
+![keypad](zero_w_keypad.png)
+
+Keypad:
+![keypad](zero_w_keypad.png)
+
+Filter/connector board:
+![board1](zero_w_filter.png)
+
+![board2](zero_w_filter_solder.png)
+
+![board3](zero_w_sandwich.png)

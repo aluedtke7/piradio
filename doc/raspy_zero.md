@@ -109,15 +109,13 @@ I decided to buy a cheap power bank pcb, because that gave me the most possibili
 the current percentage of capacity. On the side there's a small push button that handles on and off
 switching. The battery is a LiPo of size 18650.
 
-#### Photos
-All together:
-![all together](zero_w_overview.png)
-
-Power supply:
+Power bank pcb:
 ![power supply](zero_w_psu.png)
 
-Keypad:
-![keypad](zero_w_keypad.png)
+
+#### More photos
+All together:
+![all together](zero_w_overview.png)
 
 Keypad:
 ![keypad](zero_w_keypad.png)

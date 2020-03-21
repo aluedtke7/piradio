@@ -178,17 +178,17 @@ In addition, the file `rc.local` needs admin rights to be changed:
 If you need to stop the automatically started `piradio`, please proceed as follows. First, get the
 `Process Group ID (PGID)` of piradio and the mplayer processes:
 
-    ps -o pid,ppid,pgid,cmd -U pi
+    ps -o pgid,cmd -U pi
     
-      PID  PPID  PGID  CMD
-      561     1   561  /lib/systemd/systemd --user
-      564   561   561  (sd-pam)
-      571     1   570  /home/pi/piradio -oled -scrollSpeed=300
-      978   571   570  mplayer -quiet http://tuner.m1.fm/chillout.mp3
-      979   978   570  mplayer -quiet http://tuner.m1.fm/chillout.mp3
-      990   981   981  sshd: pi@pts/0
-      993   990   993  -bash
-     1044  1027  1044  ps -o pid,ppid,pgid,cmd -U pi
+    PGID  CMD
+     561  /lib/systemd/systemd --user
+     561  (sd-pam)
+     570  /home/pi/piradio -oled -scrollSpeed=300
+     570  mplayer -quiet http://tuner.m1.fm/chillout.mp3
+     570  mplayer -quiet http://tuner.m1.fm/chillout.mp3
+     981  sshd: pi@pts/0
+     993  -bash
+    1044  ps -o pid,ppid,pgid,cmd -U pi
     
 The line containing `/home/pi/piradio ...` has a number (570) in column `PGID`. This PGID number is also
 shown in the lines containing `mplayer ...`. To stop all these processes in one go, enter the following:

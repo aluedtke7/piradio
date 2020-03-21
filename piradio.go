@@ -48,6 +48,7 @@ var (
 	stationIdx       = -1
 	bitrate          string
 	volume           string
+	muted            bool
 	charsPerLine     int
 	command          *exec.Cmd
 	inPipe           io.WriteCloser
@@ -235,8 +236,11 @@ func loadStations(fileName string) []radioStation {
 	return stations
 }
 
-func printBitrateVolume(lineNum int, bitrate string, volume string) {
+func printBitrateVolume(lineNum int, bitrate string, volume string, muted bool) {
 	var s string
+	if muted {
+		volume = "-mute-"
+	}
 	if charsPerLine < 20 {
 		s = fmt.Sprintf("%-10v%8v", bitrate, volume)
 	} else {
@@ -397,6 +401,14 @@ func main() {
 		check(err)
 	}
 
+	pMuteAudio := gpioreg.ByName("GPIO16")
+	if pMuteAudio == nil {
+		logger.Error("Failed to find GPIO16")
+	}
+	if err := pMuteAudio.In(gpio.PullUp, gpio.NoEdge); err != nil {
+		check(err)
+	}
+
 	var statusChan = make(chan string)
 	var ctrlChan = make(chan os.Signal)
 	var stationMutex = &sync.Mutex{}
@@ -434,6 +446,12 @@ func main() {
 		volumeMutex.Unlock()
 		check(err)
 	}
+	fpMute := func() {
+		volumeMutex.Lock()
+		_, err = inPipe.Write([]byte("m")) // toggle mute
+		volumeMutex.Unlock()
+		check(err)
+	}
 
 	signal.Notify(ctrlChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
 
@@ -449,9 +467,15 @@ func main() {
 			case pPrevStation.Read() == false:
 				debounceBtn(fpPrev) // previous station
 			case pVolUp.Read() == false:
-				debounceBtn(fpUp) // increase volume
+				if !muted {
+					debounceBtn(fpUp) // increase volume
+				}
 			case pVolDown.Read() == false:
-				debounceBtn(fpDown) // decrease volume
+				if !muted {
+					debounceBtn(fpDown) // decrease volume
+				}
+			case pMuteAudio.Read() == false:
+				debounceBtn(fpMute) // toggle mute
 			}
 			time.Sleep(70 * time.Millisecond)
 		}
@@ -541,7 +565,7 @@ func main() {
 				if len(bitrateArr) > 1 {
 					bitrate = strings.Trim(bitrateArr[1], " \n")
 					logger.Trace("Bitrate: " + bitrate)
-					printBitrateVolume(3, bitrate, volume)
+					printBitrateVolume(3, bitrate, volume, muted)
 				}
 			}
 			if strings.Index(line, "Volume:") >= 0 {
@@ -554,7 +578,14 @@ func main() {
 						format = "Vol %s%%"
 					}
 					volume = fmt.Sprintf(format, strings.Split(strings.Trim(volumeArr[1], " \n"), " ")[0])
-					printBitrateVolume(3, bitrate, volume)
+					printBitrateVolume(3, bitrate, volume, muted)
+				}
+			}
+			if strings.Index(line, "Mute:") >= 0 {
+				muteArr := strings.Split(line, ":")
+				if len(muteArr) > 1 {
+					muted = strings.Contains(muteArr[1], "enabled")
+					printBitrateVolume(3, bitrate, volume, muted)
 				}
 			}
 		}

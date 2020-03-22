@@ -103,7 +103,55 @@ The Fritzing schematic is located in [this file](https://github.com/aluedtke7/pi
 
 ![Fritzing Zero](schematic_zero.png)
 
-#### Power supply
+### Stream to a bluetooth speaker
+If you don't want to use the 3.5mm jack as audio source, then you can use a bluetooth speaker, but
+that needs some preparation.
+
+First you have to install 2 packages:
+
+    sudo apt update && sudo apt install pulseaudio pulseaudio-module-bluetooth
+    
+Next, you have to enable the user `pi` to use the `bluetothctl` tool. Therefore, the following
+code has to be placed in the file `/etc/dbus-1/system.d/bluetooth.conf`. You need superuser rights
+for that:
+````
+  <policy user="pi">
+    <allow send_destination="org.bluez"/>
+    <allow send_interface="org.bluez.Agent1"/>
+    <allow send_interface="org.bluez.GattCharacteristic1"/>
+    <allow send_interface="org.bluez.GattDescriptor1"/>
+    <allow send_interface="org.freedesktop.DBus.ObjectManager"/>
+    <allow send_interface="org.freedesktop.DBus.Properties"/>
+  </policy>
+````
+The policy must be placed inside of tag `<busconfig>`.
+
+Now the speaker has to be paired with the raspi. Start `bluetoothctl` and enter the following
+commands. The tool `bluetoothctl` should already be installed on your Zero W:
+
+    power on
+    agent on
+    default-agent
+
+Now start the bluetooth scan. Before that, you should switch your bt speaker into the pairing mode.
+
+    scan on
+    
+After several seconds, your speaker should be listed with the address and name. Remember the address.
+Now stop the scan with `scan off` and pair, trust and connect the speaker. Please replace the
+xx:xx:xx:xx:xx:xx with the real address of your speaker:
+
+    pair xx:xx:xx:xx:xx:xx
+    trust xx:xx:xx:xx:xx:xx
+    connect xx:xx:xx:xx:xx:xx
+    
+With the last command you should hear a tone from your speaker that the connection was successful.
+
+Now you should leave bluetoothctl via `exit` or `<ctrl>+<d>`. If you now start piradio, mplayer should
+automatically pick up the bluetooth connection for playing audio. If piradio is already started,
+just change the station and mplayer will be started with a different streaming url and uses bluetooth.
+    
+### Power supply
 I decided to buy a cheap power bank pcb, because that gave me the most possibilities. The pcb I bought has
 2 USB type A outputs and a micro USB Input for charging. In addition, it has a small LCD that shows
 the current percentage of capacity. On the side there's a small push button that handles on and off
@@ -112,8 +160,7 @@ switching. The battery is a LiPo of size 18650.
 Power bank pcb:
 ![power supply](zero_w_psu.png)
 
-
-#### More photos
+### More photos
 All together:
 ![all together](zero_w_overview.png)
 

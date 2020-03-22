@@ -1,6 +1,6 @@
 module github.com/aluedtke7/piradio
 
-go 1.13
+go 1.14
 
 require (
 	github.com/antigloss/go v0.0.0-20200109080012-05d5d0918164

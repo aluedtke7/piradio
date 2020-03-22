@@ -163,14 +163,14 @@ In order to start piradio on every boot, we have to add a line in `/etc/rc.local
 
      su pi -c '/home/pi/piradio -oled -scrollSpeed=300 &'
 
-Please put this line **before** the line `exit 0`!
+Please put this line **before** the line containing `exit 0`!
 
 This will start `piradio` as a background task of user `pi`. The user switch is needed because otherwise
 `piradio` would run with `root` priviliges.
 
 The parameter used are just one possibility to start `piradio` and can also be omitted. It's important
 to end the line with an `&` and that the user has the right to start `piradio` in that folder.
-In addition, the file `rc.local` needs admin rights to be changed:
+The file `rc.local` needs admin rights to be changed:
 
     sudo nano /etc/rc.local
 
@@ -196,3 +196,11 @@ shown in the lines containing `mplayer ...`. To stop all these processes in one 
     kill -- -570
 
 Now you can copy your fresh version of `piradio` to your Raspberry Pi.
+
+### See title/interpret in terminal
+If you want to see the actual title/interpret in a remote terminal, you should
+run the following command to see the log of piradio:
+
+    less ~/.piradio/log/piradio.pi.INFO
+    
+Press `<shift>+<f>` to let less update the log constantly.

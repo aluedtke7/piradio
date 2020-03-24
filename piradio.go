@@ -46,6 +46,7 @@ var (
 	scrollSpeedPtr   *int
 	stations         []radioStation
 	stationIdx       = -1
+	btDevices        []string
 	bitrate          string
 	volume           string
 	muted            bool
@@ -292,6 +293,58 @@ func newStation() {
 	}()
 }
 
+// reads the paired bt devices into an array and listens for BT events
+func checkBluetooth() {
+	// init part
+	result, err := exec.Command("bluetoothctl", "devices").Output()
+	if err != nil {
+		logger.Error(err.Error())
+	} else {
+		arr := strings.Split(string(result), "\n")
+		logger.Info("BT Devices paired:")
+		for _, s := range arr {
+			parts := strings.Split(s, " ")
+			if len(parts) > 1 {
+				btDevices = append(btDevices, parts[1])
+				logger.Info(parts[1])
+			}
+		}
+	}
+
+	// listen part
+	var lastExitCode int = 999
+	for {
+		cmd := exec.Command("ls", "/dev/input/event0")
+		err = cmd.Run()
+		exitCode := cmd.ProcessState.ExitCode()
+		if exitCode == 2 {
+			// not connected
+			if lastExitCode == 0 {
+				logger.Info("Re-run mplayer (2)... ")
+				newStation()
+			}
+			for idx, btDevice := range btDevices {
+				logger.Info(fmt.Sprintf("Trying to connect device #%d %s", idx, btDevice))
+				cmd = exec.Command("bluetoothctl", "connect", btDevice)
+				err = cmd.Run()
+				connectExitCode := cmd.ProcessState.ExitCode()
+				if connectExitCode == 0 {
+					logger.Info("Success with device " + btDevice)
+					break
+				}
+			}
+		} else if exitCode == 0 {
+			// connected
+			if lastExitCode == 2 {
+				logger.Info("Re-run mplayer (0)... ")
+				newStation()
+			}
+		}
+		lastExitCode = exitCode
+		time.Sleep(3 * time.Second)
+	}
+}
+
 // removes unneeded/unwanted strings from the title like " (CDM EDIT)" etc.
 func removeNoise(title string) string {
 	opening := strings.Index(title, "(")
@@ -523,6 +576,8 @@ func main() {
 		_, _ = inPipe.Write([]byte("/"))
 		_, _ = inPipe.Write([]byte("*"))
 	}()
+
+	go checkBluetooth()
 
 	for {
 		select {

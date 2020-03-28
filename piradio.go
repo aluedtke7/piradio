@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -74,6 +75,7 @@ type radioStation struct {
 func check(err error) {
 	if err != nil {
 		logger.Error(err.Error())
+		logger.Error(errors.Unwrap(fmt.Errorf("Wrapped error: %w", err)).Error())
 	}
 }
 
@@ -322,6 +324,7 @@ func checkBluetooth() {
 			if lastExitCode == 0 {
 				logger.Info("Re-run mplayer (2)... ")
 				newStation()
+				volDownUp()
 			}
 			for idx, btDevice := range btDevices {
 				logger.Info(fmt.Sprintf("Trying to connect device #%d %s", idx, btDevice))
@@ -338,6 +341,7 @@ func checkBluetooth() {
 			if lastExitCode == 2 {
 				logger.Info("Re-run mplayer (0)... ")
 				newStation()
+				volDownUp()
 			}
 		}
 		lastExitCode = exitCode
@@ -373,6 +377,11 @@ func removeNoise(title string) string {
 		}
 	}
 	return title
+}
+
+func volDownUp() {
+	_, _ = inPipe.Write([]byte("/"))
+	_, _ = inPipe.Write([]byte("*"))
 }
 
 func main() {
@@ -573,8 +582,7 @@ func main() {
 		// and 'increase volume'. We're waiting 5 seconds to give mplayer enough time to
 		// initialize and get ready to receive commands.
 		time.Sleep(5 * time.Second)
-		_, _ = inPipe.Write([]byte("/"))
-		_, _ = inPipe.Write([]byte("*"))
+		volDownUp()
 	}()
 
 	go checkBluetooth()

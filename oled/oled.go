@@ -113,6 +113,10 @@ func (o *oled) commandHandler() {
 	}
 }
 
+func (o *oled) Backlight(on bool) {
+	// nothing to do here: OLEDs don't have a backlight
+}
+
 func (o *oled) ClearLine(ofs int) {
 	o.cmdChan <- command{
 		cmd:     cmdClearline,

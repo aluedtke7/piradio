@@ -115,18 +115,26 @@ In case the tool is not installed:
     sudo apt update && sudo apt install i2c-tools
 
 #### Start binary with parameters
+Piradio comes with several command line parameters. When no parameters are given, the LCD will be used.
+All parameters are case sensitive.
 
     cd /home/pi
     ./piradio           # uses the LCD
     ./piradio -oled     # uses the OLED
     ./piradio -help     # shows all options
     Usage of ./piradio:
+      -backlightOff
+        	set to switch off backlight after some time
+      -backlightOffTime int
+        	backlight switch off time in s (3s...3600s) (default 15)
       -camelCase
         	set to format title
       -debug
         	set to output mplayer info on stdout
       -lcdDelay int
         	initial delay for LCD in s (1s...10s) (default 3)
+      -noBluetooth
+        	set to only use analog output
       -noise
             set to remove noise from title
       -oled
@@ -137,11 +145,15 @@ In case the tool is not installed:
         	set to scroll station names
 
 Description of the options:
+- backlightOff: if set and if using the LCD, the backlight will be switched off after NN seconds, when no button 
+is pressed during this time.
+- backlightOffTime: the time in seconds the backlight is on. Will be reset with every button press.  
 - camelCase: if set, the Title will be formatted in a *camel case* way
 - debug: in case of problems set this option a see what happens on the comand line. `piradio` has to 
 be started manually in the shell to see the output.
 - lcdDelay: sometimes the LCD will not be correctly initialized and the display shows funny characters.
 In this case increase this value. Only needed for the LCD.
+- noBluetooth: when set, no bluetooth connection will be tried. 
 - noise: some stations transmit very long title names with the remix name in round brackets. If you 
 enable this option these strings will be removed and the title will most probably fit on the display without 
 scrolling.

@@ -33,34 +33,40 @@ import (
 )
 
 const (
-	debounceTime = 100
+	debounceTime            = 100
+	debounceWriteToFileTime = 15
 )
 
 var (
-	disp             display.Display
-	debug            *bool
-	camelCasePtr     *bool
-	noisePtr         *bool
-	oledPtr          *bool
-	scrollStationPtr *bool
-	lcdDelayPtr      *int
-	scrollSpeedPtr   *int
-	stations         []radioStation
-	stationIdx       = -1
-	btDevices        []string
-	bitrate          string
-	volume           string
-	muted            bool
-	charsPerLine     int
-	command          *exec.Cmd
-	inPipe           io.WriteCloser
-	outPipe          io.ReadCloser
-	pipeChan         = make(chan io.ReadCloser)
-	ipAddress        string
-	homePath         string
-	currentStation   string
-	debounceWrite    func(f func())
-	charMap          = map[string]string{"'": "'", "´": "'", "á": "a", "é": "e", "ê": "e", "è": "e", "í": "i", "à": "a",
+	disp                display.Display
+	debug               *bool
+	camelCasePtr        *bool
+	noisePtr            *bool
+	oledPtr             *bool
+	noBluetoothPtr      *bool
+	backlightOffPtr     *bool
+	backlightOffTimePtr *int
+	scrollStationPtr    *bool
+	lcdDelayPtr         *int
+	scrollSpeedPtr      *int
+	stations            []radioStation
+	stationIdx          = -1
+	btDevices           []string
+	bitrate             string
+	volume              string
+	muted               bool
+	charsPerLine        int
+	command             *exec.Cmd
+	inPipe              io.WriteCloser
+	outPipe             io.ReadCloser
+	pipeChan            = make(chan io.ReadCloser)
+	ipAddress           string
+	homePath            string
+	currentStation      string
+	debounceWrite       func(f func())
+	debounceBacklight   func(f func())
+	stationMutex        = &sync.Mutex{}
+	charMap             = map[string]string{"'": "'", "´": "'", "á": "a", "é": "e", "ê": "e", "è": "e", "í": "i", "à": "a",
 		"ä": "ae", "Ä": "Ae", "ö": "oe", "Ö": "Oe", "ü": "ue", "Ü": "Ue", "ß": "ss", "…": "...", "Ó": "O", "ó": "o",
 		"õ": "o", "ñ": "n", "ó": "o", "ø": "o", "É": "E"}
 )
@@ -278,6 +284,7 @@ func newStation() {
 		_ = outPipe.Close()
 		_ = command.Wait()
 	}
+	// command = exec.Command("mplayer", "-quiet", "-volume", "35", stations[stationIdx].url)
 	command = exec.Command("mplayer", "-quiet", stations[stationIdx].url)
 	var err error
 	inPipe, err = command.StdinPipe()
@@ -293,6 +300,17 @@ func newStation() {
 	go func() {
 		debounceWrite(saveLaststationIdx)
 	}()
+}
+
+func switchBacklightOn() {
+	disp.Backlight(true)
+	if *backlightOffPtr {
+		debounceBacklight(switchBacklightOff)
+	}
+}
+
+func switchBacklightOff() {
+	disp.Backlight(false)
 }
 
 // reads the paired bt devices into an array and listens for BT events
@@ -323,8 +341,10 @@ func checkBluetooth() {
 			// not connected
 			if lastExitCode == 0 {
 				logger.Info("Re-run mplayer (2)... ")
+				stationMutex.Lock()
 				newStation()
-				volDownUp()
+				stationMutex.Unlock()
+				go volDownUp()
 			}
 			for idx, btDevice := range btDevices {
 				logger.Info(fmt.Sprintf("Trying to connect device #%d %s", idx, btDevice))
@@ -340,8 +360,10 @@ func checkBluetooth() {
 			// connected
 			if lastExitCode == 2 {
 				logger.Info("Re-run mplayer (0)... ")
+				stationMutex.Lock()
 				newStation()
-				volDownUp()
+				stationMutex.Unlock()
+				go volDownUp()
 			}
 		}
 		lastExitCode = exitCode
@@ -380,6 +402,7 @@ func removeNoise(title string) string {
 }
 
 func volDownUp() {
+	time.Sleep(5 * time.Second)
 	_, _ = inPipe.Write([]byte("/"))
 	_, _ = inPipe.Write([]byte("*"))
 }
@@ -398,9 +421,18 @@ func main() {
 	lcdDelayPtr = flag.Int("lcdDelay", 3, "initial delay for LCD in s (1s...10s)")
 	noisePtr = flag.Bool("noise", false, "set to remove noise from title")
 	oledPtr = flag.Bool("oled", false, "set to use OLED Display")
+	noBluetoothPtr = flag.Bool("noBluetooth", false, "set to only use analog output")
+	backlightOffPtr = flag.Bool("backlightOff", false, "set to switch off backlight after some time")
+	backlightOffTimePtr = flag.Int("backlightOffTime", 15, "backlight switch off time in s (3s...3600s)")
 	scrollSpeedPtr = flag.Int("scrollSpeed", 500, "scroll speed in ms (100ms...10000ms)")
 	scrollStationPtr = flag.Bool("scrollStation", false, "set to scroll station names")
 	flag.Parse()
+	if *backlightOffTimePtr < 3 {
+		*backlightOffTimePtr = 3
+	}
+	if *backlightOffTimePtr > 3600 {
+		*backlightOffTimePtr = 3600
+	}
 	if *scrollSpeedPtr < 100 {
 		*scrollSpeedPtr = 100
 	}
@@ -473,11 +505,12 @@ func main() {
 
 	var statusChan = make(chan string)
 	var ctrlChan = make(chan os.Signal)
-	var stationMutex = &sync.Mutex{}
+	// var stationMutex = &sync.Mutex{}
 	var volumeMutex = &sync.Mutex{}
 
 	debounceBtn := debouncer.New(debounceTime * time.Millisecond)
-	debounceWrite = debouncer.New(15 * time.Second)
+	debounceWrite = debouncer.New(debounceWriteToFileTime * time.Second)
+	debounceBacklight = debouncer.New(time.Duration(*backlightOffTimePtr) * time.Second)
 
 	// the following 4 functions handle the pressed buttons
 	fpPrev := func() {
@@ -526,18 +559,23 @@ func main() {
 			switch {
 			case pNextStation.Read() == false:
 				debounceBtn(fpNext) // next station
+				switchBacklightOn()
 			case pPrevStation.Read() == false:
 				debounceBtn(fpPrev) // previous station
+				switchBacklightOn()
 			case pVolUp.Read() == false:
 				if !muted {
 					debounceBtn(fpUp) // increase volume
 				}
+				switchBacklightOn()
 			case pVolDown.Read() == false:
 				if !muted {
 					debounceBtn(fpDown) // decrease volume
 				}
+				switchBacklightOn()
 			case pMuteAudio.Read() == false:
 				debounceBtn(fpMute) // toggle mute
+				switchBacklightOn()
 			}
 			time.Sleep(70 * time.Millisecond)
 		}
@@ -552,6 +590,7 @@ func main() {
 		os.Exit(1)
 	}()
 
+	switchBacklightOn()
 	// this goroutine is reading the output from mplayer and feeds the strings into the statusChan
 	go func() {
 		for {
@@ -577,15 +616,14 @@ func main() {
 	}
 	fpNext()
 
-	go func() {
-		// In order to show the volume level, it's neccessary to 'press' once 'decrease volume'
-		// and 'increase volume'. We're waiting 5 seconds to give mplayer enough time to
-		// initialize and get ready to receive commands.
-		time.Sleep(5 * time.Second)
-		volDownUp()
-	}()
+	// In order to show the volume level, it's neccessary to 'press' once 'decrease volume'
+	// and 'increase volume'. We're waiting 5 seconds to give mplayer enough time to
+	// initialize and get ready to receive commands.
+	go volDownUp()
 
-	go checkBluetooth()
+	if !*noBluetoothPtr {
+		go checkBluetooth()
+	}
 
 	for {
 		select {

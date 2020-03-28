@@ -2,6 +2,7 @@ package display
 
 // Interface definition for LCD and OLED
 type Display interface {
+	Backlight(on bool)
 	Clear()
 	ClearLine(ofs int)
 	Close()

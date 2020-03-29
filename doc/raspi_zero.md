@@ -44,8 +44,8 @@ and check the generated part. Remove the commented lines with the unencrypted pa
 
 Reboot, login again and try to ping your router.
 
-### Enabling ssh connections and i2c 
-Run `raspi-config` and enable *ssh* and *i2c* from menu **5** (Interfacing Options).
+### Enabling ssh connections and i²c 
+Run `raspi-config` and enable *ssh* and *i²c* from menu **5** (Interfacing Options).
 
 Now you can access your Zero W from other computer via `ssh pi@10.7.7.39` i.e. If you want to connect
 without entering a password, you have to give your public ssh key to the raspi:

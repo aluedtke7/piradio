@@ -35,10 +35,14 @@ import (
 const (
 	debounceTime            = 100
 	debounceWriteToFileTime = 15
+	defVolumeAnalog         = "55"
+	defVolumeBluetooth      = "35"
 )
 
 var (
 	disp                display.Display
+	readyForMplayer     bool
+	bluetoothConnected  bool
 	debug               *bool
 	camelCasePtr        *bool
 	noisePtr            *bool
@@ -54,6 +58,8 @@ var (
 	btDevices           []string
 	bitrate             string
 	volume              string
+	volumeAnalog        string
+	volumeBluetooth     string
 	muted               bool
 	charsPerLine        int
 	command             *exec.Cmd
@@ -188,27 +194,43 @@ func getHomeDir() string {
 	return usr.HomeDir
 }
 
-// returns the index of the last used station
-func getLaststationIdx() (idx int) {
-	fileName := filepath.Join(homePath, "last_station")
-	index, err := ioutil.ReadFile(fileName)
+// returns the index of the last used station and the volume levels
+func getStationAndVolumes() (idx int, volAnalog string, volBt string) {
+	fileName := filepath.Join(homePath, "last_values")
+	content, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		idx = 0
+		volAnalog = defVolumeAnalog
+		volBt = defVolumeBluetooth
 	} else {
-		idx, err = strconv.Atoi(string(index))
+		contentArr := strings.Split(strings.Trim(string(content), " "), "\n")
+		if len(contentArr) > 0 {
+			idx, err = strconv.Atoi(contentArr[0])
+		}
+		if len(contentArr) > 1 && len(contentArr[1]) > 0 {
+			volAnalog = contentArr[1]
+		} else {
+			volAnalog = defVolumeAnalog
+		}
+		if len(contentArr) > 2 && len(contentArr[2]) > 0 {
+			volBt = contentArr[2]
+		} else {
+			volBt = defVolumeBluetooth
+		}
 	}
-	logger.Trace("getLaststationIdx: %d", idx)
-	return idx - 1
+	logger.Trace("getStationAndVolumes: %d %s %s", idx, volAnalog, volBt)
+	return idx - 1, volAnalog, volBt
 }
 
-// saves the index of the actual station index
-func saveLaststationIdx() {
-	fileName := filepath.Join(homePath, "last_station")
-	err := ioutil.WriteFile(fileName, []byte(strconv.Itoa(stationIdx)), 0644)
+// saves the index of the actual station index and the volumes levels
+func saveStationAndVolumes() {
+	fileName := filepath.Join(homePath, "last_values")
+	var s = strconv.Itoa(stationIdx) + "\n" + volumeAnalog + "\n" + volumeBluetooth
+	err := ioutil.WriteFile(fileName, []byte(s), 0644)
 	if err != nil {
 		logger.Warn("Error writing file %s : %s", fileName, err)
 	}
-	logger.Trace("saveLaststationIdx: %d", stationIdx)
+	logger.Trace("saveSationAndVolumes: %d %s %s", stationIdx, volumeAnalog, volumeBluetooth)
 }
 
 // loads the list with radio stations or creates a default list
@@ -266,7 +288,7 @@ func isConnceted(url string) bool {
 	return true
 }
 
-// does everything needed to stop the running mplayer and start a new instance
+// does everything needed to stop the running mplayer and start a new instance with the actual station url
 func newStation() {
 	disp.Clear()
 	logger.Trace("New station: %s", stations[stationIdx].name)
@@ -284,8 +306,22 @@ func newStation() {
 		_ = outPipe.Close()
 		_ = command.Wait()
 	}
-	// command = exec.Command("mplayer", "-quiet", "-volume", "35", stations[stationIdx].url)
-	command = exec.Command("mplayer", "-quiet", stations[stationIdx].url)
+	for {
+		if readyForMplayer {
+			break
+		}
+		logger.Trace("Waiting for 'readyForMplayer'...")
+		time.Sleep(time.Second)
+	}
+	if bluetoothConnected {
+		logger.Trace("Using BT volume " + volumeBluetooth)
+		volume = vol2VolString(volumeBluetooth)
+		command = exec.Command("mplayer", "-quiet", "-volume", volumeBluetooth, stations[stationIdx].url)
+	} else {
+		logger.Trace("Using Analog volume " + volumeAnalog)
+		volume = vol2VolString(volumeAnalog)
+		command = exec.Command("mplayer", "-quiet", "-volume", volumeAnalog, stations[stationIdx].url)
+	}
 	var err error
 	inPipe, err = command.StdinPipe()
 	check(err)
@@ -297,9 +333,7 @@ func newStation() {
 		pipeChan <- outPipe
 	}()
 
-	go func() {
-		debounceWrite(saveLaststationIdx)
-	}()
+	debounceWrite(saveStationAndVolumes)
 }
 
 func switchBacklightOn() {
@@ -313,9 +347,9 @@ func switchBacklightOff() {
 	disp.Backlight(false)
 }
 
-// reads the paired bt devices into an array and listens for BT events
+// reads the paired bt devices into an array and signals via 'readyForMplayer' to start the mplayer
 func checkBluetooth() {
-	// init part
+	// init part: get the list of paired bluetooth devices
 	result, err := exec.Command("bluetoothctl", "devices").Output()
 	if err != nil {
 		logger.Error(err.Error())
@@ -325,31 +359,43 @@ func checkBluetooth() {
 		for _, s := range arr {
 			parts := strings.Split(s, " ")
 			if len(parts) > 1 {
-				btDevices = append(btDevices, parts[1])
-				logger.Info(parts[1])
+				info, err2 := exec.Command("bluetoothctl", "info", parts[1]).Output()
+				if err2 == nil {
+					if strings.Contains(string(info), "Audio Sink") {
+						btDevices = append(btDevices, parts[1])
+						logger.Info(parts[1])
+						if strings.Contains(string(info), "Connected: yes") {
+							logger.Info("BT connected to " + parts[1])
+							bluetoothConnected = true
+						}
+					}
+				}
 			}
 		}
 	}
+	readyForMplayer = true
+}
 
-	// listen part
-	var lastExitCode int = 999
+// listens for BT events and restarts the mplayer if event detected
+func listenForBtChanges() {
+	lastExitCode := 999
 	for {
 		cmd := exec.Command("ls", "/dev/input/event0")
-		err = cmd.Run()
+		_ = cmd.Run()
 		exitCode := cmd.ProcessState.ExitCode()
 		if exitCode == 2 {
 			// not connected
 			if lastExitCode == 0 {
 				logger.Info("Re-run mplayer (2)... ")
+				bluetoothConnected = false
 				stationMutex.Lock()
 				newStation()
 				stationMutex.Unlock()
-				go volDownUp()
 			}
-			for idx, btDevice := range btDevices {
-				logger.Info(fmt.Sprintf("Trying to connect device #%d %s", idx, btDevice))
+			for _, btDevice := range btDevices {
+				// logger.Info(fmt.Sprintf("Trying to connect device #%d %s", idx, btDevice))
 				cmd = exec.Command("bluetoothctl", "connect", btDevice)
-				err = cmd.Run()
+				_ = cmd.Run()
 				connectExitCode := cmd.ProcessState.ExitCode()
 				if connectExitCode == 0 {
 					logger.Info("Success with device " + btDevice)
@@ -360,10 +406,10 @@ func checkBluetooth() {
 			// connected
 			if lastExitCode == 2 {
 				logger.Info("Re-run mplayer (0)... ")
+				bluetoothConnected = true
 				stationMutex.Lock()
 				newStation()
 				stationMutex.Unlock()
-				go volDownUp()
 			}
 		}
 		lastExitCode = exitCode
@@ -377,7 +423,7 @@ func removeNoise(title string) string {
 	closing := strings.Index(title, ")")
 	// text must be enclosed by round brackets
 	if opening >= 0 && closing >= 0 && closing > opening {
-		var remove bool = false
+		remove := false
 		// fmt.Println("removing noise...")
 		noise := strings.ToLower(title[opening+1 : closing])
 		if len(noise) > 0 {
@@ -401,10 +447,14 @@ func removeNoise(title string) string {
 	return title
 }
 
-func volDownUp() {
-	time.Sleep(5 * time.Second)
-	_, _ = inPipe.Write([]byte("/"))
-	_, _ = inPipe.Write([]byte("*"))
+func vol2VolString(vol string) string {
+	var format string
+	if charsPerLine < 20 {
+		format = "V %s%%"
+	} else {
+		format = "Vol %s%%"
+	}
+	return fmt.Sprintf(format, vol)
 }
 
 func main() {
@@ -505,7 +555,6 @@ func main() {
 
 	var statusChan = make(chan string)
 	var ctrlChan = make(chan os.Signal)
-	// var stationMutex = &sync.Mutex{}
 	var volumeMutex = &sync.Mutex{}
 
 	debounceBtn := debouncer.New(debounceTime * time.Millisecond)
@@ -534,12 +583,14 @@ func main() {
 		_, err = inPipe.Write([]byte("*")) // increase volume
 		volumeMutex.Unlock()
 		check(err)
+		debounceWrite(saveStationAndVolumes)
 	}
 	fpDown := func() {
 		volumeMutex.Lock()
 		_, err = inPipe.Write([]byte("/")) // decrease volume
 		volumeMutex.Unlock()
 		check(err)
+		debounceWrite(saveStationAndVolumes)
 	}
 	fpMute := func() {
 		volumeMutex.Lock()
@@ -551,7 +602,8 @@ func main() {
 	signal.Notify(ctrlChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
 
 	stations = loadStations(filepath.Join(homePath, "stations"))
-	stationIdx = getLaststationIdx()
+	stationIdx, volumeAnalog, volumeBluetooth = getStationAndVolumes()
+	go checkBluetooth()
 
 	// this function is polling the GPIO Levels and calls the debouncer when a Low-Level is found (pull up resistor)
 	go func() {
@@ -581,7 +633,7 @@ func main() {
 		}
 	}()
 
-	// this goroutine is waiting for someone to stop piradio
+	// this goroutine is waiting for piradio being stopped
 	go func() {
 		<-ctrlChan
 		logger.Trace("Ctrl+C received... Exiting")
@@ -616,15 +668,11 @@ func main() {
 	}
 	fpNext()
 
-	// In order to show the volume level, it's neccessary to 'press' once 'decrease volume'
-	// and 'increase volume'. We're waiting 5 seconds to give mplayer enough time to
-	// initialize and get ready to receive commands.
-	go volDownUp()
-
 	if !*noBluetoothPtr {
-		go checkBluetooth()
+		go listenForBtChanges()
 	}
 
+	// loop for processing the output of mplayer
 	for {
 		select {
 		case line := <-statusChan:
@@ -672,14 +720,15 @@ func main() {
 			if strings.Index(line, "Volume:") >= 0 {
 				volumeArr := strings.Split(line, ":")
 				if len(volumeArr) > 1 {
-					var format string
-					if charsPerLine < 20 {
-						format = "V %s%%"
-					} else {
-						format = "Vol %s%%"
-					}
-					volume = fmt.Sprintf(format, strings.Split(strings.Trim(volumeArr[1], " \n"), " ")[0])
+					v := strings.Split(strings.Trim(volumeArr[1], " \n"), " ")[0]
+					volume = vol2VolString(v)
+					logger.Trace("Volume: " + v)
 					printBitrateVolume(3, bitrate, volume, muted)
+					if bluetoothConnected {
+						volumeBluetooth = v
+					} else {
+						volumeAnalog = v
+					}
 				}
 			}
 			if strings.Index(line, "Mute:") >= 0 {

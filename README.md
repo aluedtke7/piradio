@@ -13,7 +13,7 @@ For the development I'm using a model 3B+ but the final target will be a Raspber
 This is the cheapest model that has WIFI. An internet radio without WIFI doesn't makes sense
 in my opinion.
 
-The documentation about that version can be found [here](doc/raspy_zero.md).
+The documentation about that version can be found [here](doc/raspi_zero.md).
 
 #### Displays
 As display you can choose between two differnt types: a 20x4 LCD or a 0,96" OLED both with i²c interface. The program
@@ -30,7 +30,8 @@ have a galvanic isolation between the loudspeaker input and the raspberry pi. Ot
 interferences in the speakers. I bought the noise filter (ground loop isolator, the black round tube at the bottom of
 the photo) from a big american online warehouse.
 
-It's also possible to connect a Bluetooth speaker to the raspberry pi, but I haven't tried that (yet).
+It's also possible to connect a Bluetooth speaker to the raspberry pi, but that
+is documented in the [readme of the Raspi Zero W](doc/raspi_zero.md).
 
 ### Software
 The software is written in GO (1.14) and it uses the `mplayer` for the heavy lifting part (music streaming etc.).

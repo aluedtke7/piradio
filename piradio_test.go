@@ -84,6 +84,15 @@ func TestRemoveMixNoise(t *testing.T) {
 	}
 }
 
+func TestRemoveCutNoise(t *testing.T) {
+	setDebug()
+	t3 := "Under The Radar (Dragonflight Cut)"
+	res := removeNoise(t3)
+	if res != "Under The Radar" {
+		t.Error("TestRemoveCutNoise :", res)
+	}
+}
+
 func TestRemoveNoNoise(t *testing.T) {
 	setDebug()
 	t4 := "After dark (On The Road Again)"

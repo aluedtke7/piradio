@@ -230,7 +230,7 @@ func saveStationAndVolumes() {
 	if err != nil {
 		logger.Warn("Error writing file %s : %s", fileName, err)
 	}
-	logger.Trace("saveSationAndVolumes: %d %s %s", stationIdx, volumeAnalog, volumeBluetooth)
+	logger.Trace("saveStationAndVolumes: %d %s %s", stationIdx, volumeAnalog, volumeBluetooth)
 }
 
 // loads the list with radio stations or creates a default list
@@ -431,6 +431,7 @@ func removeNoise(title string) string {
 			if strings.Contains(noise, "edit") ||
 				strings.Contains(noise, "mix") ||
 				strings.Contains(noise, "cdm") ||
+				strings.Contains(noise, "cut") ||
 				strings.Contains(noise, "rmx") ||
 				strings.Contains(noise, "cover") {
 				remove = true

@@ -332,7 +332,6 @@ func newStation() {
 	go func() {
 		pipeChan <- outPipe
 	}()
-
 	debounceWrite(saveStationAndVolumes)
 }
 
@@ -653,6 +652,9 @@ func main() {
 				data, err := reader.ReadString('\n')
 				if err != nil {
 					statusChan <- "Playing stopped"
+					logger.Trace("Playing stopped... starting new mplayer in 10s")
+					time.Sleep(10 * time.Second)
+					newStation()
 					break
 				} else {
 					statusChan <- data

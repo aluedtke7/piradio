@@ -9,6 +9,6 @@ require (
 	github.com/d2r2/go-logger v0.0.0-20181221090742-9998a510495e
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7 // indirect
-	golang.org/x/image v0.0.0-20200119044424-58c23975cae1
+	golang.org/x/image v0.0.0-20200430140353-33d19683fad8
 	periph.io/x/periph v3.6.2+incompatible
 )

@@ -41,6 +41,7 @@ There are currently 4 (self describing)  buttons:
 - previous station
 - increase volume
 - decrease volume
+- mute/unmute
 
 The list of stations is loaded at the start from the location `~/.piradio/stations`. If this file doesn't exist or is 
 empty, a default list with 3 stations is created. This part was inspired by the 

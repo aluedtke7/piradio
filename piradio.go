@@ -91,7 +91,7 @@ func check(err error) {
 	}
 }
 
-// logs the ipv4 addresses found and stores the first non localhost address in variable 'ipAddress'
+// logs the ipv4 addresses found and stores the first non localhost addresses in variable 'ipAddress'
 func logNetworkInterfaces() {
 	interfaces, err := net.Interfaces()
 	if err != nil {
@@ -136,7 +136,7 @@ func isOnlyLowerCase(text string) bool {
 }
 
 // removes characters/runes that cannot be displayed on the LCD/OLED. These displays can only display ascii characters.
-// Via the 'charMap' the best possible translation is made. When the flag 'camelCase' is set to true, all non only
+// Via the 'charMap' the best possible translation is made. When the flag 'camelCase' is set to true, all non-only
 // lowercase strings will be converted to camel case format.
 func beautify(text string) string {
 	var b strings.Builder
@@ -280,7 +280,7 @@ func printBitrateVolume(lineNum int, bitrate string, volume string, muted bool) 
 	printLine(lineNum, s, false, true)
 }
 
-func isConnceted(url string) bool {
+func isConnected(url string) bool {
 	_, err := http.Get(url)
 	if err != nil {
 		return false
@@ -288,7 +288,7 @@ func isConnceted(url string) bool {
 	return true
 }
 
-// does everything needed to stop the running mplayer and start a new instance with the actual station url
+// does everything to stop the running mplayer and start a new instance with the actual station url
 func newStation() {
 	disp.Clear()
 	logger.Trace("New station: %s", stations[stationIdx].name)
@@ -460,7 +460,15 @@ func vol2VolString(vol string) string {
 func main() {
 	homePath = filepath.Join(getHomeDir(), ".piradio")
 	_ = os.MkdirAll(homePath, os.ModePerm)
-	_ = logger.Init(filepath.Join(homePath, "log"), 30, 2, 10, true)
+	config := logger.Config{
+		LogDir:          filepath.Join(homePath, "log"),
+		LogFileMaxSize:  2,
+		LogFileMaxNum:   30,
+		LogFileNumToDel: 3,
+		LogDest:         logger.LogDestFile,
+		Flag:            logger.ControlFlagLogDate,
+	}
+	_ = logger.Init(&config)
 
 	logger.Trace("Starting piradio...")
 	logNetworkInterfaces()
@@ -665,7 +673,7 @@ func main() {
 
 	// Is used for testing if the url is available on startup. This is important, when started via rc.local
 	// on boot, because the internet connection might not be available yet.
-	for !isConnceted(stations[0].url) {
+	for !isConnected(stations[0].url) {
 		logger.Trace("URL %s is NOT available", stations[0].url)
 		time.Sleep(300 * time.Millisecond)
 	}
